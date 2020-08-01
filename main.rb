@@ -1,11 +1,6 @@
-class Brave
-  # require "pry"
-
-  attr_reader :name, :offense, :defense
-  attr_accessor :hp
-
-  # 会心の一撃時使用する定数
-  SPECIAL_ATTACK_CONSTANT =1.5
+class  Character
+  attr_reader :offense, :defense
+  attr_accessor :name, :hp
 
   # **キーワード引数をハッシュでのみ受け取る
   def initialize(**params)
@@ -14,7 +9,12 @@ class Brave
     @offense = params[:offense]
     @defense = params[:defense]
   end
-  # binding.pry
+end
+
+class Brave < Character
+
+  # 会心の一撃時使用する定数
+  SPECIAL_ATTACK_CONSTANT =1.5
 
   # モンスターへの攻撃
   def attack(monster)
@@ -61,6 +61,7 @@ class Brave
     target = params[:target]
 
     target.hp -= damage
+    target.hp = 0 if target.hp < 0
     puts "#{target.name}は#{damage}のダメージを受けた"
   end
 
@@ -71,18 +72,19 @@ end
 
 
 
-class Monster
-  attr_reader :offense, :defense
-  attr_accessor :hp, :name
+class Monster < Character
 
   POWER_UP_LATE = 1.5
   CALC_HALF_HP = 0.5
 
   def initialize(**params)
-    @name = params[:name]
-    @hp = params[:hp]
-    @offense = params[:offense]
-    @defense = params[:defense]
+    # オーバーライドしてるメソッド呼び出し
+    super(
+    name: params[:name]
+    hp: params[:hp]
+    offense: params[:offense]
+    defense: params[:defense]
+    )
 
     @transform_monster_flag = false
     @transform_trigger =  params[:hp] * CALC_HALF_HP
@@ -97,7 +99,6 @@ class Monster
       transform
     end
     
-
     puts "#{@name}の攻撃"
     
     damage = calculate_damage(brave)
@@ -116,9 +117,12 @@ class Monster
 
     target.hp -= damage
 
+    # ターゲットのHPがマイナスになるなら０を代入
+    target.hp = 0 if target.hp < 0
+
     puts "#{target.name}は#{damage}のダメージを受けた"    
   end
-
+  
   # ダメージ計算
   def calculate_damage(target)
     damage = @offense - target.defense    
@@ -140,9 +144,26 @@ end
 
 # クラスをインスタンス化
 brave = Brave.new(name: "テリー", hp: 500, offense: 150, defense: 100)
-monster = Monster.new(name:"スライム", hp:200, offense:200, defense:100)
+monster = Monster.new(name:"スライム", hp:250, offense:200, defense:100)
 
-brave.attack(monster)
-monster.attack(brave)
+# ループ処理
+loop do
+  brave.attack(monster)
+  break if monster.hp <= 0
 
+  monster.attack(brave)
+  break if brave.hp <= 0
+end
 
+# 勇者のHPの応じて判定
+battle_result = brave.hp > 0
+
+if battle_result
+  exp = (monster.offense + monster.defense) * 2
+  gold = (monster.offense + monster.defense) *3
+  puts "#{brave.name}は戦いに勝った"
+  puts "#{exp}の経験値と#{gold}ゴールドを獲得した"
+else
+  puts "#{brave.name}は戦いに負けた"
+  puts "#{brave.name}は目の前が真っ白になった"
+end
